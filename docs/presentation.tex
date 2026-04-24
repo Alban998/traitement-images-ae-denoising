@@ -306,7 +306,11 @@ Si l'image est dans $[0,1]$, $MAX_I=1$ :
   \IfFileExists{../assets/figures/demo_noisy.png}{%
     \includegraphics[width=\linewidth]{demo_noisy.png}\\
   }{%
-    \fbox{\parbox[c][0.45\textheight][c]{0.92\linewidth}{\centering \footnotesize demo\_noisy.png\\(absent)}}\\
+    \IfFileExists{../assets/figures/demo_mnist_noisy.png}{%
+      \includegraphics[width=\linewidth]{demo_mnist_noisy.png}\\
+    }{%
+      \fbox{\parbox[c][0.45\textheight][c]{0.92\linewidth}{\centering \footnotesize demo\_noisy.png\\(absent)}}\\
+    }%
   }%
 
   \column{0.33\textwidth}
@@ -315,7 +319,11 @@ Si l'image est dans $[0,1]$, $MAX_I=1$ :
   \IfFileExists{../assets/figures/demo_denoised.png}{%
     \includegraphics[width=\linewidth]{demo_denoised.png}\\
   }{%
-    \fbox{\parbox[c][0.45\textheight][c]{0.92\linewidth}{\centering \footnotesize demo\_denoised.png\\(absent)}}\\
+    \IfFileExists{../assets/figures/demo_mnist_denoised.png}{%
+      \includegraphics[width=\linewidth]{demo_mnist_denoised.png}\\
+    }{%
+      \fbox{\parbox[c][0.45\textheight][c]{0.92\linewidth}{\centering \footnotesize demo\_denoised.png\\(absent)}}\\
+    }%
   }%
 
   \column{0.33\textwidth}
@@ -324,7 +332,11 @@ Si l'image est dans $[0,1]$, $MAX_I=1$ :
   \IfFileExists{../assets/figures/demo_clean.png}{%
     \includegraphics[width=\linewidth]{demo_clean.png}\\
   }{%
-    \fbox{\parbox[c][0.45\textheight][c]{0.92\linewidth}{\centering \footnotesize demo\_clean.png\\(absent)}}\\
+    \IfFileExists{../assets/figures/demo_mnist_clean.png}{%
+      \includegraphics[width=\linewidth]{demo_mnist_clean.png}\\
+    }{%
+      \fbox{\parbox[c][0.45\textheight][c]{0.92\linewidth}{\centering \footnotesize demo\_clean.png\\(absent)}}\\
+    }%
   }%
 \end{columns}
 \vspace{0.4em}
