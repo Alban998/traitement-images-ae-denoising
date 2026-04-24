@@ -1,4 +1,4 @@
-# Exposé — Autoencodeurs et débruitage (DAE)
+# Autoencodeurs et débruitage (DAE)
 
 Exposé (M1) sur les **autoencodeurs** et l’**autoencodeur débruiteur** (Denoising Autoencoder), avec une présentation Beamer, une démo notebook, et deux documents d’accompagnement (notes + cours).
 
