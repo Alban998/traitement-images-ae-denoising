@@ -1,0 +1,48 @@
+# --- LaTeX (Beamer / article) ---
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- PDFs (ne pas versionner les fichiers générés / externes) ---
+docs/*.pdf
+assets/figures/*.pdf
+
+# --- Contenus potentiellement soumis à droits (à ajouter localement si besoin) ---
+assets/logos/*
+assets/inputs/*
+
+# Exports dérivés de l'image locale (si vous ne pouvez pas publier l'image source)
+assets/figures/demo_noisy.png
+assets/figures/demo_denoised.png
+assets/figures/demo_clean.png
+
+# --- Optional caches ---
+.cache/

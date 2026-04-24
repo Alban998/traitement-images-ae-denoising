@@ -1,0 +1,338 @@
+% Notes de présentation (orateur) — Autoencodeurs et débruitage d'images
+% Ce document est conçu pour VOUS (présentateurs) : explications détaillées, notations,
+% et "script" slide par slide, avec décryptage des formules.
+%
+% Compilation (dans /docs) : pdflatex -interaction=nonstopmode -halt-on-error notes_presentateur.tex
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{geometry}
+\geometry{margin=2.3cm}
+
+\usepackage{xcolor}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=1.2em}
+\setlist[enumerate]{leftmargin=1.2em}
+
+\usepackage{xurl}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!50!black, urlcolor=blue!50!black, citecolor=blue!50!black}
+\urlstyle{same}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+\title{Notes de présentation (explications détaillées)\\Autoencodeurs et débruitage d'images (DAE)}
+\author{Alban Komla Henovi \and Asta Walo Diop \and Arthur Bomemo Walé}
+\date{18 avril 2026}
+
+\begin{document}
+\maketitle
+
+\section*{Objectif de ce document}
+\begin{itemize}
+  \item Servir de \textbf{script} : quoi dire, dans quel ordre, et comment relier les slides.
+  \item Clarifier les \textbf{notations} et \textbf{formules} (AE, DAE, MSE, PSNR, bruit).
+  \item Donner des éléments de \textbf{pédagogie} : analogies, points d'attention, réponses aux questions.
+\end{itemize}
+
+\section*{Notations (à garder en tête pendant tout l'exposé)}
+\begin{itemize}
+  \item $x$ : image \textbf{propre} (référence, cible). Typiquement $x\in[0,1]^{H\times W\times C}$.
+  \item $\tilde{x}$ : image \textbf{bruitée} (observation) obtenue en appliquant un bruit à $x$.
+  \item $E_\theta$ : \textbf{encodeur} paramétré par $\theta$ (réduit/compresse l'information).
+  \item $D_\theta$ : \textbf{décodeur} paramétré par $\theta$ (reconstruit une image).
+  \item $z$ : représentation \textbf{latente} (vecteur / tenseur) dans le goulot d'étranglement.
+  \item $\hat{x}$ : reconstruction / sortie du modèle.
+  \item $\ell(\cdot,\cdot)$ : fonction de perte (ex. MSE). $\mathcal{L}(\theta)$ : perte moyenne sur le dataset.
+\end{itemize}
+
+\newpage
+\tableofcontents
+\newpage
+
+% -----------------------------------------------------------------------------
+\section{Slide de titre (logos + titre)}
+\subsection*{Ce qu'il faut dire}
+\begin{itemize}
+  \item Présenter le thème : \emph{autoencodeurs} (apprentissage de représentations) et application au \emph{débruitage}.
+  \item Situer le contexte : traitement d'images optiques, et objectif pédagogique (comprendre l'idée + voir une démo).
+\end{itemize}
+
+\subsection*{Transition}
+\begin{itemize}
+  \item \textbf{Transition} : « On commence par rappeler pourquoi on débruite, puis on introduit l'autoencodeur et sa variante débruiteuse. »
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Plan}
+\subsection*{Ce qu'il faut dire}
+\begin{itemize}
+  \item Donner le fil conducteur : (1) contexte, (2) AE, (3) DAE, (4) métriques, (5) démo, (6) conclusion.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Contexte et objectif}
+
+\subsection{Pourquoi le débruitage en imagerie optique ?}
+\paragraph{Message clé}
+Le bruit est inévitable en acquisition réelle. On veut récupérer une image plus exploitable (visuellement et pour des tâches aval : segmentation, classification, détection).
+
+\paragraph{Formule de la slide}
+\[
+  x_{\text{clean}} \approx f_\theta(\tilde{x})
+\]
+\begin{itemize}
+  \item $f_\theta$ représente un modèle paramétré (ici un réseau profond) entraîné sur des exemples.
+  \item $\tilde{x}$ est une observation bruitée, $x_{\text{clean}}$ est la cible souhaitée.
+  \item « $\approx$ » car on ne récupère jamais parfaitement l'image propre : on fait une \textbf{estimation}.
+\end{itemize}
+
+\paragraph{Comment l'expliquer simplement}
+\begin{itemize}
+  \item Imaginez un filtre intelligent : au lieu d'un filtre fixe (médian, gaussien), on apprend un filtre adapté aux données.
+  \item Le modèle apprend une transformation qui retire le bruit tout en préservant les structures importantes.
+\end{itemize}
+
+\subsection{Objectif de l'exposé}
+\begin{itemize}
+  \item Définir AE et DAE, expliquer l'intuition.
+  \item Montrer une démo : ajout de bruit \textrightarrow{} entraînement \textrightarrow{} comparaison avant/après.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Autoencodeurs : principe}
+
+\subsection{Définition : autoencodeur}
+\paragraph{Idée}
+Un autoencodeur est un modèle qui apprend à \textbf{reconstruire} son entrée. S'il est contraint (bottleneck), il doit apprendre une représentation utile.
+
+\paragraph{Formalisme (formules de la slide)}
+\begin{align*}
+  z &= E_\theta(x), \quad z \in \R^d \\
+  \hat{x} &= D_\theta(z) \\
+         &= D_\theta\big(E_\theta(x)\big)
+\end{align*}
+\begin{itemize}
+  \item $E_\theta$ : compresse $x$ en $z$ (on réduit la dimension ou l'information).
+  \item $D_\theta$ : décompresse $z$ et reconstruit $\hat{x}$.
+  \item $d$ : dimension latente. Si $d$ est petit, on force un résumé (compression).
+\end{itemize}
+
+\paragraph{Questions fréquentes}
+\begin{itemize}
+  \item \textbf{Pourquoi "auto-supervisé" ?} Parce que la cible est l'entrée elle-même : pas besoin d'annotations.
+  \item \textbf{Est-ce de la compression ?} Oui, en partie. Mais le but peut aussi être d'apprendre des features.
+\end{itemize}
+
+\subsection{Schéma AE}
+\begin{itemize}
+  \item Utiliser le schéma pour pointer : entrée $x$ \textrightarrow{} encodeur \textrightarrow{} latent $z$ \textrightarrow{} décodeur \textrightarrow{} sortie $\hat{x}$.
+  \item \textbf{Message} : si le bottleneck est pertinent, le réseau retient l'essentiel (formes, textures) et ignore une partie du bruit.
+\end{itemize}
+
+\subsection{Perte de reconstruction}
+\paragraph{Formule de la slide}
+\[
+  \mathcal{L}(\theta)=\frac{1}{m}\sum_{j=1}^m \ell\big(x^{(j)}, \hat{x}^{(j)}\big)
+\]
+\begin{itemize}
+  \item $m$ : nombre d'exemples.
+  \item $x^{(j)}$ : exemple propre, $\hat{x}^{(j)}$ : reconstruction correspondante.
+  \item On minimise $\mathcal{L}$ en ajustant les paramètres $\theta$ (descente de gradient, Adam, etc.).
+\end{itemize}
+
+\paragraph{Exemple : MSE}
+\[
+  \ell(x,\hat{x}) = \frac{1}{N}\norm{x-\hat{x}}_2^2
+\]
+\begin{itemize}
+  \item $N$ : nombre total de pixels (fois canaux) dans l'image.
+  \item $\norm{\cdot}_2^2$ : somme des carrés des différences pixel à pixel.
+  \item \textbf{Interprétation} : pénalise fortement les grosses erreurs.
+\end{itemize}
+
+\paragraph{Limite importante}
+La MSE est simple mais peut produire des sorties "trop lisses" (moyennage) car elle encourage la moyenne des solutions plausibles.
+
+% -----------------------------------------------------------------------------
+\section{Autoencodeur débruiteur (DAE)}
+
+\subsection{Idée : Denoising Autoencoder}
+\paragraph{Intuition}
+Au lieu de reconstruire $x$ à partir de $x$, on reconstruit $x$ à partir d'une version corrompue $\tilde{x}$. Cela force le modèle à apprendre à enlever le bruit.
+
+\paragraph{Formule de la slide}
+\[
+  \min_\theta\; \E_{x\sim p_{\text{data}}}\; \E_{\tilde{x}\sim q(\cdot\mid x)}\; \ell\big(x,\, D_\theta(E_\theta(\tilde{x}))\big)
+\]
+\begin{itemize}
+  \item $p_{\text{data}}$ : distribution des données propres (les images qu'on veut).
+  \item $q(\tilde{x}\mid x)$ : "mécanisme" de corruption : comment on fabrique $\tilde{x}$ à partir de $x$.
+  \item Double espérance : on moyenne sur les images et sur les réalisations de bruit.
+  \item $D_\theta(E_\theta(\tilde{x}))$ : sortie du réseau quand l'entrée est bruitée.
+\end{itemize}
+
+\paragraph{Comment le dire à l'oral}
+\begin{itemize}
+  \item « On simule du bruit, et on apprend une fonction qui inverse ce bruit au mieux. »
+  \item « Le réseau voit une image dégradée mais il est pénalisé par rapport à l'image propre. »
+\end{itemize}
+
+\subsection{Schéma DAE}
+\begin{itemize}
+  \item Insister sur la différence : l'entrée est $\tilde{x}$, la cible est $x$.
+  \item Point d'attention : si le bruit d'entraînement n'a rien à voir avec le bruit réel, le modèle généralise mal.
+\end{itemize}
+
+\subsection{Modèles de bruit (exemples)}
+\paragraph{Bruit gaussien additif}
+\[
+  \tilde{x} = x + \sigma\,\varepsilon,\quad \varepsilon\sim\mathcal{N}(0,I)
+\]
+\begin{itemize}
+  \item $\varepsilon$ : bruit aléatoire de moyenne nulle.
+  \item $\sigma$ : contrôle l'intensité (plus $\sigma$ est grand, plus l'image est bruitée).
+  \item Après ajout, on \textbf{clip} souvent dans $[0,1]$ pour rester dans une dynamique d'image valide.
+\end{itemize}
+
+\paragraph{Sel et poivre}
+\begin{itemize}
+  \item Certains pixels sont remplacés par 0 ou 1 (noir/blanc) avec une certaine probabilité.
+\end{itemize}
+
+\paragraph{Bruit multiplicatif (speckle)}
+\[
+  \tilde{x} = x\odot(1+\varepsilon)
+\]
+\begin{itemize}
+  \item "$\odot$" : multiplication terme à terme.
+  \item Le bruit dépend de l'intensité du signal (plus réaliste dans certains capteurs).
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Architecture : AE convolutionnel}
+
+\subsection{Pourquoi des convolutions ?}
+\begin{itemize}
+  \item En image, les motifs locaux (bords, textures) comptent : les convolutions les capturent bien.
+  \item Partage de poids : beaucoup moins de paramètres qu'un MLP à taille d'image identique.
+  \item Encodeur : réduit la résolution (pooling/strides) ; décodeur : restaure la résolution (upsampling / transpose conv).
+\end{itemize}
+
+\subsection{Pseudo-code (entraînement DAE)}
+\paragraph{Ce qu'il illustre}
+\begin{itemize}
+  \item Pour chaque batch d'images propres $x$, on fabrique $x_{\text{tilde}}$ bruitée.
+  \item Le modèle prédit $x_{\hat{}}$.
+  \item On calcule la MSE entre $x_{\hat{}}$ et $x$ (cible = propre), puis on met à jour les poids.
+\end{itemize}
+
+\paragraph{Point pédagogique}
+\begin{itemize}
+  \item Dire clairement : « entrée = bruitée, cible = propre » (c'est la clé du DAE).
+  \item Mentionner la généralisation : on peut tester à des niveaux de bruit un peu différents.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Évaluation et métriques}
+
+\subsection{MSE}
+\begin{itemize}
+  \item La MSE est une moyenne des erreurs au carré : plus elle est faible, plus la reconstruction est proche.
+  \item Avantage : simple, dérivable, standard.
+  \item Limite : pas toujours alignée avec la perception humaine.
+\end{itemize}
+
+\subsection{PSNR (Peak Signal-to-Noise Ratio)}
+\paragraph{Formule (slide)}
+Si l'image est dans $[0,1]$ et $MAX_I=1$ :
+\[
+\mathrm{PSNR}(x,\hat{x}) = 10\log_{10}\Big(\frac{MAX_I^2}{\mathrm{MSE}(x,\hat{x})}\Big)
+\]
+\paragraph{Explication}
+\begin{itemize}
+  \item Le PSNR exprime la qualité en \textbf{décibels} (échelle logarithmique).
+  \item Quand la MSE diminue, le PSNR augmente.
+  \item Interprétation : c'est une façon standard de comparer des méthodes de débruitage/compression.
+\end{itemize}
+
+\paragraph{Intuition rapide}
+\begin{itemize}
+  \item Si l'erreur est très petite, $\frac{1}{\mathrm{MSE}}$ est grand \textrightarrow{} log grand \textrightarrow{} PSNR élevé.
+\end{itemize}
+
+\subsection{SSIM}
+\begin{itemize}
+  \item SSIM compare des structures locales (contraste, luminance, structure).
+  \item Souvent mieux corrélé à la perception, mais plus complexe à expliquer/calculer.
+  \item Dans la démo, on se concentre sur MSE/PSNR pour rester simple.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Démo notebook}
+
+\subsection{Démo : déroulé}
+\paragraph{Ce qu'il faut raconter (pas à pas)}
+\begin{enumerate}
+  \item \textbf{Chargement} : on prend une image locale (\texttt{assets/inputs/image1.webp}) et on normalise dans $[0,1]$.
+  \item \textbf{Bruit} : on ajoute un bruit gaussien (contrôlé par $\sigma$), puis on clip.
+  \item \textbf{Patchs} : on extrait des patchs bruité/propre alignés pour former un dataset (utile si on n'a qu'une image).
+  \item \textbf{Entraînement} : AE convolutionnel, perte MSE (entrée bruitée, cible propre).
+  \item \textbf{Inférence} : on applique le modèle à l'image entière et on compare les 3 versions.
+\end{enumerate}
+
+\paragraph{Pourquoi les patchs ?}
+\begin{itemize}
+  \item Avec une seule grande image, on peut créer beaucoup d'exemples en découpant en patchs.
+  \item Cela rend l'entraînement possible sans gros dataset.
+  \item En contrepartie, il faut faire attention aux effets de bord et au "style" unique de l'image.
+\end{itemize}
+
+\subsection{Résultats (3 images)}
+\begin{itemize}
+  \item \textbf{Entrée bruitée} : montrer que la structure existe encore mais est dégradée.
+  \item \textbf{Sortie AE} : expliquer qu'on retire du bruit mais qu'il peut y avoir du lissage.
+  \item \textbf{Cible propre} : rappeler que c'est la référence (ground truth) dans notre expérience (bruit simulé).
+\end{itemize}
+
+\paragraph{Questions fréquentes}
+\begin{itemize}
+  \item \textbf{Pourquoi on sait la cible propre ?} Parce qu'on ajoute nous-mêmes le bruit à une image propre.
+  \item \textbf{Et si on n'a pas d'image propre ?} Il existe des méthodes "blind" / Noise2Noise, etc. (hors scope de cet exposé).
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Conclusion}
+\begin{itemize}
+  \item Reformuler la différence AE vs DAE (entrée = propre vs entrée = bruitée, cible = propre).
+  \item Souligner que la qualité dépend du bruit simulé, de l'architecture, et des données.
+\end{itemize}
+
+\section{Références (liens)}
+\begin{itemize}
+  \item Ichi.pro (FR) : \url{https://ichi.pro/fr/autoencodeurs-de-debruitage-tensorflow-102261356342629}
+  \item LaBRI (P. Preuter) : \url{https://www.labri.fr/perso/preuter/dl2025/cours4-dl.html}
+  \item Colab / Eyabennessib : \url{https://colab.research.google.com/github/Eyabennessib/Machine-Learning/blob/main/TP7_autoencodeurs_EBN.ipynb/}
+  \item Simon Thomine : \url{https://simonthomine.github.io/CoursDeepLearning/fr/04_Autoencodeurs/02_DenoisingAE.html}
+  \item DataCamp (FR) : \url{https://www.datacamp.com/fr/tutorial/introduction-to-autoencoders}
+  \item NYU DLSP20 (FR) : \url{https://atcold.github.io/NYU-DLSP20/fr/week07/07-3/}
+\end{itemize}
+
+\section*{Fin (Merci / Questions)}
+\begin{itemize}
+  \item Slide "Merci" : laisser 2--3 secondes, puis annoncer la session de questions.
+  \item Slide "Questions ?" : proposer 2 questions d'amorçage :
+  \begin{itemize}
+    \item « Quel type de bruit rencontre-t-on le plus en imagerie optique ? »
+    \item « Qu'est-ce qu'on perd quand on optimise uniquement la MSE ? »
+  \end{itemize}
+\end{itemize}
+
+\end{document}
